@@ -8,6 +8,10 @@ services:
             dockerfile: Dockerfile
         environment:
             - CONTRACT_ADDRESS=$CONTRACT_ADDRESS
+            - NODE_ENDPOINT=$NODE_ENDPOINT
+            - DB_HOST=$DB_HOST
+            - DB_USERNAME=$DB_USERNAME
+            - DB_PASSWORD=$DB_PASSWORD
         # volumes:
         #     - "./scanner/src:/app/src"
         ports:
@@ -20,6 +24,11 @@ services:
         build:
             context: ./graphql
             dockerfile: Dockerfile
+        environment:
+            - SERVER_PORT=$SERVER_PORT
+            - DB_HOST=$DB_HOST
+            - DB_USERNAME=$DB_USERNAME
+            - DB_PASSWORD=$DB_PASSWORD
         # volumes:
         #     - "./graphql/src:/app/src"
         ports:
