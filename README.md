@@ -20,12 +20,10 @@ Connections:
   - [the graph]
 
 TODO:
-  - parameterize and use .env file
   - actual error classes and handling
   - testing
   - iterate over event logs in chunks and keep track of already scanned blocks
   - better event parsing
   - query, download, store ABIs if not exist
   - break into separate repos
-  - publish modules
   - ci/cd
