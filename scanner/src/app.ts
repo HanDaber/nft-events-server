@@ -11,8 +11,8 @@ console.log('scan', { CONTRACT_ADDRESS })
 
 const contractAddress = CONTRACT_ADDRESS ?? '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D'; // Default to BAYC
 
-setInterval(startScan, 1000 * 60 * 60); // once per hour
-// startScan();
+startScan();
+setInterval(startScan, 1000 * 60 * 60); // once per hour for now
 
 async function startScan() {
     console.log('query eth node')
@@ -25,9 +25,6 @@ async function startScan() {
 
     console.log('insert events')
     await insertNewEvents(events);
-
-    // console.log('get all events')
-    // await getAllEvents();
 }
 
 async function queryNodeForContractLogsInBlockRange(address: string, fromBlock: number, toBlock?: number) {
@@ -93,19 +90,6 @@ async function insertNewEvents(events: any[]) {
                 .execute();
 
             console.log(`inserted ${response.raw.length} events`);
-
-            await connection.close();
-        });
-    } catch (error) {
-        console.error(error);
-    }
-}
-
-async function getAllEvents() {
-    try {
-        await DB.connect(async (connection: any) => {
-            const foundEvents = await connection.manager.find(Event);
-            console.log("Found all events: ", foundEvents);
 
             await connection.close();
         });

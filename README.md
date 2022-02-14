@@ -4,7 +4,8 @@
 
 ### Example implementation using the Bored Ape Yacht Club NFT contract (address)
 
-`docker-compose up --build`
+populate `.env` with DB config and contract address
+`docker-compose up`
 
 ### Notes:
 Repos:

@@ -1,3 +1,4 @@
+import { getManager } from "typeorm";
 import {
     Query,
     Resolver,
@@ -7,7 +8,7 @@ import { Event } from "@handaber/nft-events-models";
 @Resolver(of => Event)
 export class EventResolver {
     @Query(() => String)
-    sample(): String {
-        return "Hello"
+    async all(): Promise<Event[]> {
+        return await getManager().find(Event);
     }
 }

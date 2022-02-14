@@ -5,13 +5,15 @@ import "reflect-metadata"
 import { buildSchema } from "type-graphql"
 import { EventResolver } from "./resolvers/Event"
 
-import { DB } from "@handaber/nft-events-models";
+import { DB, Event } from "@handaber/nft-events-models";
 
 dotenv.config({ path: __dirname+'/../.env' });
 
-const { DB_HOST, SERVER_PORT } = process.env;
+const { SERVER_PORT } = process.env;
 
-console.log('gql', { DB_HOST })
+console.log('gql', { SERVER_PORT })
+
+startServer()
 
 async function startServer() {
     const schema = await buildSchema({
@@ -32,7 +34,9 @@ async function startServer() {
 
         app.listen(SERVER_PORT, async () => {
             console.log(`GQL says 'sup from port ${SERVER_PORT}`)
+
+            const aFewEvents = await connection.manager.find(Event, { take: 3 });
+            console.log({aFewEvents})
         })
     });
 }
-startServer()

@@ -2,6 +2,7 @@ type Event {
   id: String!
   type: String!
   args: String!
+  isRead: Boolean
 }
 
 type Address {

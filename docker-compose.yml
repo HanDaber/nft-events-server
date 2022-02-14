@@ -6,6 +6,8 @@ services:
         build:
             context: ./scanner
             dockerfile: Dockerfile
+        environment:
+            - CONTRACT_ADDRESS=$CONTRACT_ADDRESS
         # volumes:
         #     - "./scanner/src:/app/src"
         ports:
