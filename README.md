@@ -2,12 +2,15 @@
 
 ## Set of Services which indexes the events emitted by a given smart contract (EVM) and exposes a GraphQL API around those events
 
-### Example implementation using the Bored Ape Yacht Club NFT contract (address)
-
+### Example implementation using the Bored Ape Yacht Club NFT contract (address) in `.env`
+---
+## How to use:
 populate `.env` with DB config and contract address
-`docker-compose up`
 
-### Notes:
+run `docker-compose up`
+
+---
+## Notes:
 Repos:
   - models
   - scan
