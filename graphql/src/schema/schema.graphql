@@ -1,0 +1,24 @@
+type Event {
+  id: String!
+  type: String!
+  args: String!
+}
+
+type Address {
+  id: String!
+}
+
+type Read {
+  id: String!
+  event: Event!
+  address: Address!
+}
+
+type Query {
+  eventsByReadStatus(status: Boolean): [Event]
+}
+
+type Mutation {
+  createEvent(type: String, args: String): Event
+  createRead(event: String!, address: String!): Read
+}
