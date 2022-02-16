@@ -1,20 +1,66 @@
 import { ethers } from 'ethers';
 import * as dotenv from 'dotenv';
 
-import { DB, Event } from "@handaber/nft-events-models";
+import { DB, Event, BlockSpan } from "@handaber/nft-events-models";
 
-dotenv.config({ path: __dirname+'/../.env' });
+dotenv.config({ path: __dirname + '/../.env' });
 
 const { CONTRACT_ADDRESS, NODE_ENDPOINT } = process.env;
 
 console.log('scan', { CONTRACT_ADDRESS })
 
-const contractAddress = CONTRACT_ADDRESS ?? '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D'; // Default to BAYC
+const nodeEndpoint = NODE_ENDPOINT ? NODE_ENDPOINT : 'http://localhost:8545';
+const contractAddress = CONTRACT_ADDRESS ? CONTRACT_ADDRESS : '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D'; // Default to BAYC
 
-startScan();
-setInterval(startScan, 1000 * 60 * 60); // once per hour for now
+let models: any;
 
-async function startScan() {
+processNextBlockSpan();
+setInterval(processNextBlockSpan, 1000 * 60); // Once per minute
+/*
+    Starts at the first block plus offset 
+    and scans consecutive spans of blocks 
+    with a specified range until the current block
+*/
+async function processNextBlockSpan() {
+    try {
+        const ethereumClient = new ethers.providers.JsonRpcProvider(nodeEndpoint);
+
+        await DB.connect(async (connection: any) => {
+            models = connection;
+        });
+
+        const latestBlock = await ethereumClient.getBlockNumber();
+        console.log({ latestBlock })
+
+        const lastProcessedSpan = await models.manager.findOne(BlockSpan, {
+            order: { id: 'DESC' }
+        });
+        console.log({ lastProcessedSpan })
+
+        if( lastProcessedSpan.toBlock < latestBlock ) {
+            const newSpan = new BlockSpan();
+
+            const processing = await models.manager.save(newSpan);
+            console.log({ processing })
+
+            await startScan(processing.fromBlock, processing.toBlock);
+
+            processing.setComplete();
+
+            await models.manager.save(processing);
+
+            // const foundItAgain = await models.manager.findOne(BlockSpan, processing.id);
+            // console.log({ foundItAgain })
+        }
+
+        await models.close();
+
+    } catch (error) {
+        console.error(error);
+    }
+};
+
+async function startScan(fromBlock: number, toBlock: number) {
     console.log('query eth node')
     const logs = await queryNodeForContractLogsInBlockRange(contractAddress, 14201104);
     console.log(`received ${logs.length} logs`);
@@ -29,8 +75,6 @@ async function startScan() {
 
 async function queryNodeForContractLogsInBlockRange(address: string, fromBlock: number, toBlock?: number) {
     try {
-        const nodeEndpoint = NODE_ENDPOINT ?? 'http://localhost:8545';
-
         const ethereumClient = new ethers.providers.JsonRpcProvider(nodeEndpoint);
 
         if (!toBlock) toBlock = await ethereumClient.getBlockNumber();
@@ -78,22 +122,12 @@ async function parseContractLogs(contractAddress: String, logs: any[]) {
 }
 
 async function insertNewEvents(events: any[]) {
-    try {
-        await DB.connect(async (connection: any) => {
-            console.log("Scanner connected to DB");
+    const response = await models
+        .createQueryBuilder()
+        .insert()
+        .into(Event)
+        .values(events)
+        .execute();
 
-            const response = await connection
-                .createQueryBuilder()
-                .insert()
-                .into(Event)
-                .values(events)
-                .execute();
-
-            console.log(`inserted ${response.raw.length} events`);
-
-            await connection.close();
-        });
-    } catch (error) {
-        console.error(error);
-    }
+    console.log(`inserted ${response.raw.length} events`);
 }

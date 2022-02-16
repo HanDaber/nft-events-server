@@ -2,6 +2,7 @@ import * as dotenv from 'dotenv';
 import "reflect-metadata";
 import { Connection, createConnection } from "typeorm";
 import { Event } from "./src/entity/Event";
+import { BlockSpan } from "./src/entity/BlockSpan";
 
 dotenv.config();
 
@@ -28,7 +29,7 @@ export namespace DB {
             database: "nft_events",
             synchronize: true,
             logging: false,
-            entities: [Event],
+            entities: [Event, BlockSpan],
             migrations: [__dirname + "../src/migration/**/*.ts"],
             subscribers: [__dirname + "../src/subscriber/**/*.ts"],
             cli: {
@@ -42,4 +43,4 @@ export namespace DB {
     };
 }
 
-export { Event };
+export { Event, BlockSpan };
