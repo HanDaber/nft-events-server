@@ -5,29 +5,32 @@ import { DB, Event, BlockSpan } from "@handaber/nft-events-models";
 
 dotenv.config({ path: __dirname + '/../.env' });
 
-const { CONTRACT_ADDRESS, NODE_ENDPOINT } = process.env;
+const { CONTRACT_ADDRESS, NODE_ENDPOINT, SCAN_START_BLOCK, SCAN_CHUNK_SIZE } = process.env;
 
-console.log('scan', { CONTRACT_ADDRESS })
+console.log('scan', { CONTRACT_ADDRESS, NODE_ENDPOINT, SCAN_START_BLOCK, SCAN_CHUNK_SIZE })
 
 const nodeEndpoint = NODE_ENDPOINT ? NODE_ENDPOINT : 'http://localhost:8545';
 const contractAddress = CONTRACT_ADDRESS ? CONTRACT_ADDRESS : '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D'; // Default to BAYC
 
-let models: any;
+let models: any = null;
+// This interval and trigger logic can be pulled out to the infra layer
+const syncInterval = 1000 * 20; // 20 seconds (likely capture at least one block)
+// const backfillInterval = 1000; // 1 second (for backfill)
+const backfillInterval = 10 * 1000; // 10 second (for testing backfill)
+let scanInterval = backfillInterval; // default to backfill
 
-processNextBlockSpan();
-setInterval(processNextBlockSpan, 1000 * 60); // Once per minute
+checkNextJob();
+setInterval(checkNextJob, scanInterval); // Start
 /*
     Starts at the first block plus offset 
     and scans consecutive spans of blocks 
     with a specified range until the current block
 */
-async function processNextBlockSpan() {
+async function checkNextJob() {
     try {
         const ethereumClient = new ethers.providers.JsonRpcProvider(nodeEndpoint);
 
-        await DB.connect(async (connection: any) => {
-            models = connection;
-        });
+        models = await connectDB();
 
         const latestBlock = await ethereumClient.getBlockNumber();
         console.log({ latestBlock })
@@ -36,34 +39,52 @@ async function processNextBlockSpan() {
             order: { id: 'DESC' }
         });
         console.log({ lastProcessedSpan })
-
-        if( lastProcessedSpan.toBlock < latestBlock ) {
-            const newSpan = new BlockSpan();
-
-            const processing = await models.manager.save(newSpan);
-            console.log({ processing })
-
-            await startScan(processing.fromBlock, processing.toBlock);
-
-            processing.setComplete();
-
-            await models.manager.save(processing);
-
-            // const foundItAgain = await models.manager.findOne(BlockSpan, processing.id);
-            // console.log({ foundItAgain })
+        
+        /* not exists means it is the first in the database
+           less than means we are still behind the latest block 
+           if equal then this block is already included in the last scan
+        */
+        if( !lastProcessedSpan || lastProcessedSpan.toBlock < latestBlock ) {
+            const ok = await backfillNextBlockSpan();
+            console.log({ ok })
+        } else if( lastProcessedSpan.fromBlock <= latestBlock ) { // partial blockSpan, we are caught up on backfilling
+            scanInterval = syncInterval;
+            
+            // await startScan(lastProcessedSpan.fromBlock, latestBlock); // switch to syncing up to latest block
+        } else { // we are ahead of the latest block, no-op
+            console.log('We are ahead of the latest block, m8. no-op')
+            console.log(`Last processed fromBlock: ${lastProcessedSpan.fromBlock}, latest block: ${latestBlock}`)
         }
 
-        await models.close();
+        // await models.close();
 
     } catch (error) {
         console.error(error);
     }
 };
 
+async function backfillNextBlockSpan() {
+    const newSpan = new BlockSpan();
+
+    const processing = await models.manager.save(newSpan);
+    console.log({ processing })
+
+    await startScan(processing.fromBlock, processing.toBlock);
+
+    processing.setComplete();
+
+    await models.manager.save(processing);
+
+    // const foundItAgain = await models.manager.findOne(BlockSpan, processing.id);
+    // console.log({ foundItAgain })
+};
+
 async function startScan(fromBlock: number, toBlock: number) {
     console.log('query eth node')
-    const logs = await queryNodeForContractLogsInBlockRange(contractAddress, 14201104);
+    const logs = await queryNodeForContractLogsInBlockRange(contractAddress, fromBlock, toBlock);
     console.log(`received ${logs.length} logs`);
+
+    if( logs.length < 1 ) return;
 
     console.log('parse logs')
     const events = await parseContractLogs(contractAddress, logs);
@@ -130,4 +151,15 @@ async function insertNewEvents(events: any[]) {
         .execute();
 
     console.log(`inserted ${response.raw.length} events`);
+}
+
+async function connectDB() {
+    if(!models) await DB.connect(async (connection: any) => {
+        models = connection;
+        console.log('got the connection')
+    });
+
+    console.log('postcondude')
+
+    return models;
 }

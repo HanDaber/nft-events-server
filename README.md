@@ -4,10 +4,10 @@
 
 ### Example implementation using the Bored Ape Yacht Club NFT contract (address) in `.env`
 ---
-## How to use:
-populate `.env` with DB config and contract address
+## How to start:
+populate `.env` with DB config, node endpoint and contract address, etc
 
-run `docker-compose up`
+Run `npm run dev`
 
 ---
 ## Notes:
@@ -26,7 +26,6 @@ Connections:
 TODO:
   - actual error classes and handling
   - testing
-  - iterate over event logs in chunks and keep track of already scanned blocks
   - better event parsing
   - query, download, store ABIs if not exist
   - break into separate repos

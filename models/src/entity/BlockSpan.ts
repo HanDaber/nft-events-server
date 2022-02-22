@@ -48,6 +48,10 @@ export class BlockSpan {
         this.status = Status.COMPLETE;
     }
 
+    setError() {
+        this.status = Status.ERROR;
+    }
+
     getFromBlock() {
         return scanOffset + this.getSpanOffset();
     }

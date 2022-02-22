@@ -1,6 +1,6 @@
 {
   "name": "@handaber/nft-events-models",
-  "version": "1.6.0",
+  "version": "1.8.0",
   "description": "Shared module with Models and DB driver for nft-events-server",
   "devDependencies": {
     "ts-node": "3.3.0",
